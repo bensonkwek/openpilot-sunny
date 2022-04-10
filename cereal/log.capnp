@@ -549,6 +549,7 @@ struct ControlsState @0x97ff69c53601abf1 {
   madsEnabled @60 :Bool;
   cruiseEnabled @61 :Bool;
   suspended @62 :Bool;
+  distanceTraveled @63 :Float32;
 
   longControlState @30 :Car.CarControl.Actuators.LongControlState;
   vPid @2 :Float32;
@@ -922,6 +923,7 @@ struct LateralPlan @0xe1e9318e2ae8b51e {
   curvatureRates @28 :List(Float32);
 
   dynamicLaneProfile @30 :Bool;
+  standstillElapsed @33 :Float32;
 
   enum Desire {
     none @0;
@@ -1368,6 +1370,7 @@ struct LiveParametersData {
   angleOffsetAverageStd @11 :Float32;
   stiffnessFactorStd @12 :Float32;
   steerRatioStd @13 :Float32;
+  roll @14 :Float32;
 }
 
 struct LiveMapDataDEPRECATED {

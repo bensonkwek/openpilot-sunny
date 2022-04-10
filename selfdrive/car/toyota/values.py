@@ -18,6 +18,8 @@ class CarControllerParams:
   STEER_DELTA_DOWN = 25     # always lower than 45 otherwise the Rav4 faults (Prius seems ok with 50)
   STEER_ERROR_MAX = 350     # max delta between torque cmd and torque motor
 
+  FEATURE_NO_LKAS_ICON = True
+
 # Car button codes
 class CruiseButtons:
   ACCEL_ACC = 9
@@ -1654,6 +1656,10 @@ NO_DSU_CAR = TSS2_CAR | set([CAR.CHR, CAR.CHRH, CAR.CAMRY, CAR.CAMRYH])
 
 # no resume button press required
 NO_STOP_TIMER_CAR = TSS2_CAR | set([CAR.RAV4H, CAR.HIGHLANDERH, CAR.HIGHLANDER, CAR.SIENNA, CAR.LEXUS_ESH])
+
+FEATURES = {
+  "use_lta_msg": set([CAR.CAMRY_TSS2, CAR.CAMRYH_TSS2, CAR.HIGHLANDER_TSS2, CAR.HIGHLANDER_TSS2])
+}
 
 def main():
   for member, value in vars(CAR).items():

@@ -510,6 +510,24 @@ SunnypilotPanel::SunnypilotPanel(QWidget* parent) : QWidget(parent) {
                                   "../assets/offroad/icon_network.png",
                                   this));
 
+  toggles.append(new ParamControl("ProcessNotRunningOff",
+                                 "Bypass \"System Malfunction\" Error",
+                                 "Prevent openpilot from returning the \"System Malfunction\" alert that hinders the ability use openpilot. Turn on this feature if you experience this alert frequently.",
+                                 "../assets/offroad/icon_shell.png",
+                                 this));
+
+  toggles.append(new ParamControl("NoOffroadFix",
+                                 "Fix openpilot No Offroad",
+                                 "Enforce openpilot to go offroad and turns off after shutting down the car. This feature fixes non-official devices running openpilot without comma power.\nOnly enable this feature if your comma device does not shut down after the car is turned off.",
+                                 "../assets/offroad/icon_shell.png",
+                                 this));
+
+  toggles.append(new ParamControl("ACCMADSCombo",
+                                  "Enable ACC+MADS with RES+/SET-",
+                                  "Engage both ACC and MADS with a single press of RES+ or SET- button.\nNote: Once MADS is engaged via this mode, it will remain engaged until it is manually disabled via LFA/LKAS/Cruise MAIN button or car shut off.",
+                                  "../assets/offroad/icon_openpilot.png",
+                                  this));
+
   toggles.append(new ParamControl("DisableMADS",
                                   "Disable M.A.D.S.",
                                   "Disable the beloved M.A.D.S. feature. Enable Stock openpilot engagement/disengagement.",

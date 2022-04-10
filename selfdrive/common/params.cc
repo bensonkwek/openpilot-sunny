@@ -84,6 +84,7 @@ private:
 
 std::unordered_map<std::string, uint32_t> keys = {
     {"AccessToken", CLEAR_ON_MANAGER_START | DONT_LOG},
+    {"ACCMADSCombo", PERSISTENT},
     {"AthenadPid", PERSISTENT},
     {"AutoLaneChangeTimer", PERSISTENT},
     {"BootedOnroad", CLEAR_ON_MANAGER_START | CLEAR_ON_IGNITION_OFF},
@@ -98,6 +99,7 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"CompletedTrainingVersion", PERSISTENT},
     {"ControlsReady", CLEAR_ON_MANAGER_START | CLEAR_ON_PANDA_DISCONNECT | CLEAR_ON_IGNITION_ON},
     {"CurrentRoute", CLEAR_ON_MANAGER_START | CLEAR_ON_IGNITION_ON},
+    {"DevUI", PERSISTENT},
     {"DisableMADS", PERSISTENT},
     {"DisableOnroadUploads", PERSISTENT},
     {"DisablePowerDown", PERSISTENT},
@@ -119,6 +121,8 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"GithubSshKeys", PERSISTENT},
     {"GithubUsername", PERSISTENT},
     {"GitRemote", PERSISTENT},
+    {"GpxDeleteAfterUpload", PERSISTENT},
+    {"GpxDeleteIfUploaded", PERSISTENT},
     {"GsmApn", PERSISTENT},
     {"GsmRoaming", PERSISTENT},
     {"HandsOnWheelMonitoring", PERSISTENT},
@@ -137,6 +141,7 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"IsUpdateAvailable", CLEAR_ON_MANAGER_START},
     {"JoystickDebugMode", CLEAR_ON_MANAGER_START | CLEAR_ON_IGNITION_OFF},
     {"LastAthenaPingTime", CLEAR_ON_MANAGER_START},
+    {"LastCarModel", PERSISTENT},
     {"LastGPSPosition", PERSISTENT},
     {"LastPowerDropDetected", CLEAR_ON_MANAGER_START},
     {"LastUpdateException", PERSISTENT},
@@ -146,6 +151,7 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"NavDestination", CLEAR_ON_MANAGER_START | CLEAR_ON_IGNITION_OFF},
     {"NavSettingTime24h", PERSISTENT},
     {"NavdRender", PERSISTENT},
+    {"NoOffroadFix", PERSISTENT},
     {"OnroadScreenOff", PERSISTENT},
     {"OnroadScreenOffBrightness", PERSISTENT},
     {"OpenpilotEnabledToggle", PERSISTENT},
@@ -153,6 +159,7 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"Passive", PERSISTENT},
     {"PrebuiltOn", PERSISTENT},
     {"PrimeRedirected", PERSISTENT},
+    {"ProcessNotRunningOff", PERSISTENT},
     {"QuietDrive", PERSISTENT},
     {"RecordFront", PERSISTENT},
     {"RecordFrontLock", PERSISTENT},  // for the internal fleet

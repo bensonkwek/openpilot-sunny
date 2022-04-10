@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 from cereal import car
+from panda import Panda
 from selfdrive.config import Conversions as CV
 from selfdrive.car.toyota.tunes import LatTunes, LongTunes, set_long_tune, set_lat_tune
-from selfdrive.car.toyota.values import CruiseButtons, Ecu, CAR, TSS2_CAR, NO_DSU_CAR, MIN_ACC_SPEED, CarControllerParams
+from selfdrive.car.toyota.values import CruiseButtons, Ecu, CAR, TSS2_CAR, NO_DSU_CAR, MIN_ACC_SPEED, CarControllerParams, FEATURES
 from selfdrive.car import STD_CARGO_KG, scale_rot_inertia, scale_tire_stiffness, gen_empty_fingerprint, get_safety_config
 from selfdrive.car.interfaces import CarInterfaceBase
 
@@ -280,6 +281,11 @@ class CarInterface(CarInterfaceBase):
     else:
       set_long_tune(ret.longitudinalTuning, LongTunes.TSS)
 
+    if candidate in FEATURES["use_lta_msg"]:
+      ret.safetyConfigs[0].safetyParam |= Panda.FLAG_TOYOTA_MADS_LTA_MSG
+
+    ret.standStill = False
+
     return ret
 
   # returns a car.CarState
@@ -341,7 +347,7 @@ class CarInterface(CarInterfaceBase):
 
     extraGears = []
     if not (self.CS.CP.openpilotLongitudinalControl or self.CS.CP.enableGasInterceptor):
-      extraGears = [car.CarState.GearShifter.sport, car.CarState.GearShifter.low]
+      extraGears = [car.CarState.GearShifter.sport, car.CarState.GearShifter.low, car.CarState.GearShifter.brake]
 
     # events
     events = self.create_common_events(ret, extra_gears=extraGears, pcm_enable=False)
@@ -400,6 +406,11 @@ class CarInterface(CarInterfaceBase):
         events.add(EventName.silentButtonEnable)
       else:
         events.add(EventName.buttonEnable)
+
+    if self.CS.cruiseState_standstill or self.CC.standstill_status == 1:
+      self.CP.standStill = True
+    else:
+      self.CP.standStill = False
 
     ret.events = events.to_msg()
 

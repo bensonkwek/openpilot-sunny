@@ -4,9 +4,10 @@ from common.realtime import DT_CTRL
 from selfdrive.car import apply_toyota_steer_torque_limits, create_gas_interceptor_command, make_can_msg
 from selfdrive.car.toyota.toyotacan import create_steer_command, create_ui_command, create_ui_command_off,\
                                            create_accel_command, create_acc_cancel_command, \
-                                           create_fcw_command, create_lta_steer_command
+                                           create_fcw_command, create_lta_steer_command, \
+                                           create_ui_command_disable_startup_lkas
 from selfdrive.car.toyota.values import CAR, STATIC_DSU_MSGS, NO_STOP_TIMER_CAR, TSS2_CAR, \
-                                        MIN_ACC_SPEED, PEDAL_TRANSITION, CarControllerParams
+                                        MIN_ACC_SPEED, PEDAL_TRANSITION, CarControllerParams, FEATURES
 from opendbc.can.packer import CANPacker
 VisualAlert = car.CarControl.HUDControl.VisualAlert
 
@@ -19,6 +20,10 @@ class CarController():
     self.standstill_req = False
     self.steer_rate_limited = False
     self.signal_last = 0.
+    self.has_set_lkas = False
+    self.standstill_fault_reduce_timer = 0
+    self.standstill_status = 0
+    self.standstill_status_timer = 0
 
     self.packer = CANPacker(dbc_name)
 
@@ -70,12 +75,23 @@ class CarController():
     # on entering standstill, send standstill request
     if CS.out.standstill and not self.last_standstill and CS.CP.carFingerprint not in NO_STOP_TIMER_CAR:
       self.standstill_req = True
+      self.standstill_status = 1
     if CS.pcm_acc_status != 8:
       # pcm entered standstill or it's disabled
       self.standstill_req = False
 
     self.last_steer = apply_steer
     self.last_standstill = CS.out.standstill
+
+    if CS.out.brakeLights and CS.out.vEgo < 0.1:
+      self.standstill_status = 1
+      self.standstill_status_timer += 1
+      if self.standstill_status_timer > 200:
+        self.standstill_status = 1
+        self.standstill_status_timer = 0
+    if self.standstill_status == 1 and CS.out.vEgo > 1:
+      self.standstill_status = 0
+      self.standstill_fault_reduce_timer = 0
 
     can_sends = []
 
@@ -126,11 +142,26 @@ class CarController():
       # forcing the pcm to disengage causes a bad fault sound so play a good sound instead
       send_ui = True
 
+    use_lta_msg = False
+    if CarControllerParams.FEATURE_NO_LKAS_ICON:
+      if CS.CP.carFingerprint in FEATURES["use_lta_msg"]:
+        use_lta_msg = True
+        if CS.persistLkasIconDisabled == 1:
+          self.has_set_lkas = True
+      else:
+        use_lta_msg = False
+        if CS.persistLkasIconDisabled == 0:
+          self.has_set_lkas = True
+
+      if (frame % 100 == 0 or send_ui):
+        if not self.has_set_lkas:
+          can_sends.append(create_ui_command_disable_startup_lkas(self.packer, use_lta_msg))
+
     if (frame % 100 == 0 or send_ui):
       if(CS.lkasEnabled):
-        can_sends.append(create_ui_command(self.packer, steer_alert, pcm_cancel_cmd, left_line, right_line, left_lane_depart, right_lane_depart, CS.lkasEnabled and not apply_steer_req))
+        can_sends.append(create_ui_command(self.packer, steer_alert, pcm_cancel_cmd, left_line, right_line, left_lane_depart, right_lane_depart, CS.lkasEnabled and not apply_steer_req, use_lta_msg))
       else:
-        can_sends.append(create_ui_command_off(self.packer))
+        can_sends.append(create_ui_command_off(self.packer, use_lta_msg))
 
     if frame % 100 == 0 and CS.CP.enableDsu:
       can_sends.append(create_fcw_command(self.packer, fcw_alert))

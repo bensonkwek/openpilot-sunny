@@ -6,7 +6,7 @@ from opendbc.can.can_define import CANDefine
 from selfdrive.car.interfaces import CarStateBase
 from opendbc.can.parser import CANParser
 from selfdrive.config import Conversions as CV
-from selfdrive.car.toyota.values import CAR, DBC, STEER_THRESHOLD, NO_STOP_TIMER_CAR, TSS2_CAR
+from selfdrive.car.toyota.values import CAR, DBC, STEER_THRESHOLD, NO_STOP_TIMER_CAR, TSS2_CAR, FEATURES
 from common.params import Params
 
 
@@ -41,6 +41,11 @@ class CarState(CarStateBase):
     self.lkas_enabled = None
     self.prev_lkas_enabled = None
 
+    self.acc_mads_combo = None
+    self.prev_acc_mads_combo = None
+
+    self.cruiseState_standstill = False
+
   def update(self, cp, cp_cam):
     ret = car.CarState.new_message()
 
@@ -48,6 +53,7 @@ class CarState(CarStateBase):
     self.prev_cruise_buttons = self.cruise_buttons
     self.prev_lkas_enabled = self.lkas_enabled
     self.disable_mads = Params().get_bool("DisableMADS")
+    self.acc_mads_combo = Params().get_bool("ACCMADSCombo")
 
     ret.doorOpen = any([cp.vl["SEATS_DOORS"]["DOOR_OPEN_FL"], cp.vl["SEATS_DOORS"]["DOOR_OPEN_FR"],
                         cp.vl["SEATS_DOORS"]["DOOR_OPEN_RL"], cp.vl["SEATS_DOORS"]["DOOR_OPEN_RR"]])
@@ -55,6 +61,7 @@ class CarState(CarStateBase):
 
     ret.brakePressed = cp.vl["BRAKE_MODULE"]["BRAKE_PRESSED"] != 0
     ret.brakeHoldActive = cp.vl["ESP_CONTROL"]["BRAKE_HOLD_ACTIVE"] == 1
+    ret.brakeLights = bool(cp.vl["ESP_CONTROL"]["BRAKE_LIGHTS_ACC"] or ret.brakePressed or ret.brakeHoldActive)
     if self.CP.enableGasInterceptor:
       ret.gas = (cp.vl["GAS_SENSOR"]["INTERCEPTOR_GAS"] + cp.vl["GAS_SENSOR"]["INTERCEPTOR_GAS2"]) / 2.
       ret.gasPressed = ret.gas > 15
@@ -74,6 +81,9 @@ class CarState(CarStateBase):
     self.belowLaneChangeSpeed = ret.vEgo < (30 * CV.MPH_TO_MS)
 
     ret.standstill = ret.vEgoRaw < 0.001
+    ret.standStill = self.CP.standStill
+
+    self.cruiseState_standstill = ret.cruiseState.standstill
 
     ret.steeringAngleDeg = cp.vl["STEER_ANGLE_SENSOR"]["STEER_ANGLE"] + cp.vl["STEER_ANGLE_SENSOR"]["STEER_FRACTION"]
     torque_sensor_angle_deg = cp.vl["STEER_TORQUE_SENSOR"]["STEER_ANGLE"]
@@ -94,7 +104,12 @@ class CarState(CarStateBase):
     ret.steeringRateDeg = cp.vl["STEER_ANGLE_SENSOR"]["STEER_RATE"]
 
     self.cruise_buttons = cp.vl["PCM_CRUISE"]["CRUISE_STATE"]
-    self.lkas_enabled = cp_cam.vl["LKAS_HUD"]["SET_ME_X01"] == 0
+    if self.CP.carFingerprint in FEATURES["use_lta_msg"]:
+      self.lkas_enabled = cp_cam.vl["LKAS_HUD"]["LDA_ON_MESSAGE"]
+      self.persistLkasIconDisabled = cp_cam.vl["LKAS_HUD"]["SET_ME_X01"] == 1
+    else:
+      self.lkas_enabled = cp_cam.vl["LKAS_HUD"]["SET_ME_X01"]
+      self.persistLkasIconDisabled = cp_cam.vl["LKAS_HUD"]["SET_ME_X01"] == 0
 
     if self.prev_lkas_enabled is None:
       self.prev_lkas_enabled = self.lkas_enabled
@@ -142,10 +157,20 @@ class CarState(CarStateBase):
 
     if ret.cruiseState.available:
       if not self.disable_mads:
-        if not self.prev_lkas_enabled and self.lkas_enabled: #1 == not LKAS button
-          self.lkasEnabled = True
-        elif self.prev_lkas_enabled and not self.lkas_enabled:
-          self.lkasEnabled = False
+        if self.CP.carFingerprint in FEATURES["use_lta_msg"]:
+          if self.prev_lkas_enabled != 1 and self.lkas_enabled == 1: #1 == not LDA_ON_MESSAGE
+            self.lkasEnabled = True
+          elif self.prev_lkas_enabled != 2 and self.lkas_enabled == 2:
+            self.lkasEnabled = False
+        else:
+          if not self.prev_lkas_enabled and self.lkas_enabled: #1 == not LKAS button
+            self.lkasEnabled = True
+          elif self.prev_lkas_enabled == 1 and not self.lkas_enabled:
+            self.lkasEnabled = False
+        if self.acc_mads_combo:
+          if not self.prev_acc_mads_combo and ret.cruiseState.enabled:
+            self.lkasEnabled = True
+          self.prev_acc_mads_combo = ret.cruiseState.enabled
     else:
       self.lkasEnabled = False
 
@@ -204,6 +229,7 @@ class CarState(CarStateBase):
       ("SEATBELT_DRIVER_UNLATCHED", "SEATS_DOORS", 1),
       ("TC_DISABLED", "ESP_CONTROL", 1),
       ("BRAKE_HOLD_ACTIVE", "ESP_CONTROL", 1),
+      ("BRAKE_LIGHTS_ACC", "ESP_CONTROL", 1),
       ("STEER_FRACTION", "STEER_ANGLE_SENSOR", 0),
       ("STEER_RATE", "STEER_ANGLE_SENSOR", 0),
       ("CRUISE_ACTIVE", "PCM_CRUISE", 0),
@@ -268,6 +294,7 @@ class CarState(CarStateBase):
       ("FORCE", "PRE_COLLISION", 0),
       ("PRECOLLISION_ACTIVE", "PRE_COLLISION", 0),
       ("SET_ME_X01", "LKAS_HUD", 0),
+      ("LDA_ON_MESSAGE", "LKAS_HUD", 0),
     ]
 
     # use steering message to check if panda is connected to frc

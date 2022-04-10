@@ -40,6 +40,11 @@ AddrCheckStruct toyota_addr_checks[] = {
   {.msg = {{0x224, 0, 8, .check_checksum = false, .expected_timestep = 25000U},
            {0x226, 0, 8, .check_checksum = false, .expected_timestep = 25000U}, { 0 }}},
 };
+
+const int TOYOTA_PARAM_MADS_LTA_MSG = 1;
+
+bool toyota_mads_lta_msg = false;
+
 #define TOYOTA_ADDR_CHECKS_LEN (sizeof(toyota_addr_checks) / sizeof(toyota_addr_checks[0]))
 addr_checks toyota_rx_checks = {toyota_addr_checks, TOYOTA_ADDR_CHECKS_LEN};
 
@@ -69,8 +74,17 @@ static int toyota_rx_hook(CANPacket_t *to_push) {
   if (valid && (GET_BUS(to_push) == 2U))
   {
     int addr = GET_ADDR(to_push);
-    if (addr == 0x412) {
+    if ((addr == 0x412) && !toyota_mads_lta_msg) {
       bool set_me = (GET_BYTE(to_push, 0) & 0xC0) > 0; // LKAS_HUD
+      if(set_me && !set_me_prev)
+      {
+        controls_allowed = 1;
+      }
+      set_me_prev = set_me;
+    }
+
+    if ((addr == 0x412) && toyota_mads_lta_msg) {
+      bool set_me = (GET_BYTE(to_push, 3) & 0x40) > 0; // LKAS_HUD
       if(set_me && !set_me_prev)
       {
         controls_allowed = 1;
@@ -110,6 +124,7 @@ static int toyota_rx_hook(CANPacket_t *to_push) {
       if (!gas_interceptor_detected) {
         gas_pressed = ((GET_BYTE(to_push, 0) >> 4) & 1U) == 0U;
       }
+      main_on_prev = main_on;
     }
 
     if (addr == 0x1D3) {
@@ -263,6 +278,9 @@ static const addr_checks* toyota_init(int16_t param) {
   disengageFromBrakes = false;
   controls_allowed = 0;
   relay_malfunction_reset();
+
+  toyota_mads_lta_msg = GET_FLAG(param, TOYOTA_PARAM_MADS_LTA_MSG);
+
   gas_interceptor_detected = 0;
   toyota_dbc_eps_torque_factor = param;
   return &toyota_rx_checks;

@@ -36,17 +36,22 @@ def manager_init():
   params.clear_all(ParamKeyType.CLEAR_ON_MANAGER_START)
 
   default_params = [
+    ("ACCMADSCombo", "1"),
     ("AutoLaneChangeTimer", "0"),
     ("BrightnessControl", "0"),
     ("CarModel", ""),
     ("CompletedTrainingVersion", "0"),
+    ("DevUI", "2"),
     ("DisableMADS", "0"),
     ("DisableOnroadUploads", "0"),
     ("DynamicLaneProfile", "2"),
     ("EndToEndToggle", "1"),
+    ("GpxDeleteAfterUpload", "1"),
+    ("GpxDeleteIfUploaded", "1"),
     ("HasAcceptedTerms", "0"),
     ("HandsOnWheelMonitoring", "0"),
     ("MaxTimeOffroad", "9"),
+    ("NoOffroadFix", "0"),
     ("OnroadScreenOff", "0"),
     ("OnroadScreenOffBrightness", "50"),
     ("OpenpilotEnabledToggle", "1"),
